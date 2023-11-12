@@ -82,6 +82,7 @@ bool newBar()
 //+------------------------------------------------------------------+
 void recenHigh()
   {
+   bool alert = false;
    string name = "",highObjName = "";
    datetime prevTime = 0, currTime = 0;
    double highValue = 0;
@@ -94,39 +95,40 @@ void recenHigh()
            {
             currTime = (datetime)ObjectGetInteger(0,name,OBJPROP_TIME,0);
 
-            if(prevTime == 0 || currTime >= prevTime)
+            //if(prevTime == 0 || currTime >= prevTime)
               {
                prevTime  = currTime;
                highValue = ObjectGetDouble(0,name,OBJPROP_PRICE,0);
                highObjName = name;
+               if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
+                 {
+                  ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                 }
+               if(highValue >= iClose(Symbol(),PERIOD_CURRENT,1) && highValue <= iHigh(Symbol(),PERIOD_CURRENT,1))
+                 {
+                  if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
+                    {
+                     ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                     ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
+                     alert = true;
+                    }
+                 }
+               else
+                  if(iClose(Symbol(),PERIOD_CURRENT,1) >= highValue)
+                    {
+                     if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
+                       {
+                        ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                        ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
+                       }
+                    }
               }
            }
         }
      }
    Print("High Value: ",highValue," PreTime: ",prevTime);
-   if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-     {
-      ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-     }
-   if(highValue >= iClose(Symbol(),PERIOD_CURRENT,1) && highValue <= iHigh(Symbol(),PERIOD_CURRENT,1))
-     {
-      if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-        {
-         ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-         ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-        }
-
+   if(alert)
       Alert("Sell Case Alert ");
-     }
-   else
-      if(iClose(Symbol(),PERIOD_CURRENT,1) >= highValue)
-        {
-         if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-           {
-            ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-            ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-           }
-        }
   }
 //+------------------------------------------------------------------+
 
@@ -135,6 +137,7 @@ void recenHigh()
 //+------------------------------------------------------------------+
 void recenLow()
   {
+   bool alert = false;
    string name = "",lowObjName = "";
    datetime prevTime = 0, currTime = 0;
    double lowValue = 0;
@@ -147,39 +150,40 @@ void recenLow()
            {
             currTime = (datetime)ObjectGetInteger(0,name,OBJPROP_TIME,0);
 
-            if(prevTime == 0 || currTime >= prevTime)
+         //  if(prevTime == 0 || currTime >= prevTime)
               {
-               prevTime  = currTime;
+           //    prevTime  = currTime;
                lowValue = ObjectGetDouble(0,name,OBJPROP_PRICE,0);
                lowObjName = name;
+
+               if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+                 {
+                  ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                 }
+               if(lowValue <= iClose(Symbol(),PERIOD_CURRENT,1) && lowValue > iLow(Symbol(),PERIOD_CURRENT,1))
+                 {
+                  if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+                    {
+                     ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                     ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
+                     alert = true;
+                    }
+                 }
+               else
+                  if(iClose(Symbol(),PERIOD_CURRENT,1) < lowValue)
+                    {
+                     if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+                       {
+                        ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
+                        ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
+                       }
+                    }
               }
            }
         }
      }
-   Print("Low Value: ",lowValue," PreTime: ",prevTime);
-   if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-     {
-      ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-     }
-   if(lowValue <= iClose(Symbol(),PERIOD_CURRENT,1) && lowValue > iLow(Symbol(),PERIOD_CURRENT,1))
-     {
-      if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-        {
-         ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-         ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-        }
-
-         Alert("Buy Case Alert ");
-     }
-   else
-      if(iClose(Symbol(),PERIOD_CURRENT,1) < lowValue)
-        {
-         if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-           {
-            ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),PERIOD_CURRENT,1));
-            ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-           }
-        }
+   if(alert)
+      Alert("Buy Case Alert ");
   }
 //+------------------------------------------------------------------+
 
