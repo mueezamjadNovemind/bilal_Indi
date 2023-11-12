@@ -10,18 +10,12 @@ input int               candles     = 6;                 // Candle Count
 input ENUM_TIMEFRAMES   linesTF     = PERIOD_CURRENT;    // Lines Timeframe
 const string highObj  = "High",lowObj  = "Low", checked = "checked";
 
-datetime expiry=D'2023.12.30 23:00:00';
-
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
 int OnInit()
   {
-   if(TimeCurrent()>expiry)
-     {
-      Print("Error: 318");
-      ExpertRemove();
-     }
+
 //---
    return(INIT_SUCCEEDED);
   }

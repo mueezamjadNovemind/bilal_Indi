@@ -9,18 +9,14 @@
 
 int candles = 10;
 const string sellObj = "sell", buyObj = "buy";
-datetime expiry=D'2023.12.30 23:00:00';
+
 
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
 int OnInit()
   {
-   if(TimeCurrent()>expiry)
-     {
-      Print("Error: 318");
-      ExpertRemove();
-     }
+
 //---
    return(INIT_SUCCEEDED);
   }
