@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                            bilal_Strategy_EA.mq5 |
+//|                                          bilalStrategy_EA_v1.mq5 |
 //|                                    Copyright 2023, Novemind inc. |
 //|                                         https://www.novemind.com |
 //+------------------------------------------------------------------+
@@ -18,18 +18,19 @@ input ENUM_TIMEFRAMES    linesTF_htf = PERIOD_H1;                               
 input int                candles_ltf = 1;                                        // LTF Candle Count
 input ENUM_TIMEFRAMES    linesTF_ltf = PERIOD_M5;                                // Ltf Lines Timeframe
 
-const  string highObj  = "High",lowObj  = "Low", checked = "checked", sellObj = "fvg_sell", buyObj = "fvg_buy";
-double htf_High = 0, htf_Low = 0, ltf_High_fvg = 0, ltf_Low_fvg = 0;
-datetime ltf_High_fvg_Time = 0, ltf_Low_fvg_Time = 0;
-bool check_FVG_buy_SwingHigh = 0,check_FVG_sell_SwingLow = 0;
-int candles = 10;
+const  string high_HTF  = "High_HTF",low_HTF  = "Low_HTF", checked = "checked", fvg_Sell = "fvg_sell", fvg_Buy = "fvg_buy",high_LTF  = "High_LTF",low_LTF  = "Low_LTF";
+
+bool check_Ltf_low_fvg_for_sell = false,check_Ltf_high_fvg_for_buy = false;
+double ltf_High = 0, ltf_Low = 0;
+datetime ltf_Low_Time = 0,ltf_High_Time = 0;
+string highObjName   = "",    lowObjName = "";
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit()
   {
 //---
-
    trade.SetExpertMagicNumber(magic_no);
    trade.SetDeviationInPoints(10);
    trade.SetTypeFilling(ORDER_FILLING_IOC);
@@ -39,13 +40,12 @@ int OnInit()
 //---
    return(INIT_SUCCEEDED);
   }
-
 //+------------------------------------------------------------------+
 //|Checking the break in history                                     |
 //+------------------------------------------------------------------+
 void checkInHistory()
   {
-   string highObjName   = "",    lowObjName = "";
+
    datetime highTime    = 0,    lowTime    = 0;
    double highValue     = 0,    lowValue   = 0;
    bool highFound       = false, lowFound   = false;
@@ -76,13 +76,10 @@ void checkInHistory()
       if(countHigh == candles_htf && highFound == false)
         {
          highFound = true;
-         // Print(count," == ",candles);
          highTime = iTime(Symbol(),linesTF_htf,midIndex);
+         highValue = midValueHigh;
          Print("High Time: ",highTime);
          highObjName = createObject(highTime,midValueHigh,true);
-         htf_High = midValueHigh;
-         highValue = htf_High;
-
         }
       if(countLow == candles_htf && lowFound == false)
         {
@@ -90,13 +87,9 @@ void checkInHistory()
          // Print(count," == ",candles);
          lowTime = iTime(Symbol(),linesTF_htf,midIndex);
          lowObjName = createObject(lowTime,midValueLow,false);
-         htf_Low = midValueLow;
-         lowValue = htf_Low;
-
         }
       if(highFound && lowFound)
         {
-         //Print("High Found: ",iTime(Symbol(),linesTF_htf,midIndex));
          break;
         }
      }
@@ -104,6 +97,7 @@ void checkInHistory()
 //============ Check High Sweep/Break ==================
 
    int ltfBar = iBarShift(Symbol(),linesTF_ltf,(highTime + PeriodSeconds(linesTF_htf)),false);
+   Print("High Bars: ",ltfBar);
    for(int i = ltfBar; i > 0; i --)
      {
       if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
@@ -117,7 +111,8 @@ void checkInHistory()
             ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
             ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
             //============ on Sweep High
-            check_FVG_sell_SwingLow = true;
+            check_Ltf_low_fvg_for_sell = true;
+            Print("High Break: ", iTime(Symbol(),linesTF_ltf,i));
            }
         }
       else
@@ -129,40 +124,56 @@ void checkInHistory()
                ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
               }
            }
-      //markNewHighsLows_LTF(true,true);
+
+      //================== check the lows
+      int midIndex = i+candles_ltf+1, countHigh = 0, countLow = 0;
+      double midValueLow  = iLow(Symbol(),linesTF_ltf,midIndex);
+
+      for(int x = 1 ; x <= candles_ltf ; x ++)
+        {
+         if(midValueLow <= iLow(Symbol(),linesTF_ltf,midIndex+x) && midValueLow <= iLow(Symbol(),linesTF_ltf,midIndex-x))
+            countLow++;
+        }
+      if(countLow == candles_ltf && check_Ltf_low_fvg_for_sell)
+        {
+         createObject_LTF(highTime,midValueLow,false);
+         ltf_Low       = midValueLow;
+         ltf_Low_Time  = iTime(Symbol(),linesTF_ltf,midIndex);
+        }
+
       fairValueGap_Sell(i);
      }
-
-//============ Check Low Sweep/Break ==================
-   ltfBar = iBarShift(Symbol(),linesTF_ltf,(lowTime + PeriodSeconds(linesTF_htf)),false);
-   for(int i = ltfBar; i > 0; i --)
-     {
-      if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-        {
-         ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
-        }
-      if(lowValue <= iClose(Symbol(),linesTF_ltf,i) && lowValue > iLow(Symbol(),linesTF_ltf,i))
-        {
-         if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-           {
-            ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
-            ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-            //============ on Sweep Low
-            // check_FVG_buy_SwingHigh = true;
-           }
-        }
-      else
-         if(iClose(Symbol(),linesTF_ltf,i) < lowValue)
-           {
-            if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-              {
-               ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
-               ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-              }
-           }
-      // markNewHighsLows_LTF(true,true);
-      fairValueGap_Buy(i);
-     }
+//
+////============ Check Low Sweep/Break ==================
+//   ltfBar = iBarShift(Symbol(),linesTF_ltf,(lowTime + PeriodSeconds(linesTF_htf)),false);
+//   for(int i = ltfBar; i > 0; i --)
+//     {
+//      if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+//        {
+//         ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
+//        }
+//      if(lowValue <= iClose(Symbol(),linesTF_ltf,i) && lowValue > iLow(Symbol(),linesTF_ltf,i))
+//        {
+//         if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+//           {
+//            ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
+//            ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
+//            //============ on Sweep Low
+//            check_Ltf_high_fvg_for_buy = true;
+//           }
+//        }
+//      else
+//         if(iClose(Symbol(),linesTF_ltf,i) < lowValue)
+//           {
+//            if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
+//              {
+//               ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,i));
+//               ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
+//              }
+//           }
+//      markNewHighsLows_LTF(check_Ltf_low_fvg_for_sell,check_Ltf_high_fvg_for_buy);
+//      fairValueGap_Buy(i);
+//     }
   }
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
@@ -176,7 +187,9 @@ void OnDeinit(const int reason)
       name = ObjectName(0,i);
       if(ObjectGetInteger(0,name,OBJPROP_TYPE) == OBJ_TREND)
         {
-         if(StringFind(name,highObj,0) >= 0 || StringFind(name,lowObj,0) >= 0)
+         if(StringFind(name,high_HTF,0) >= 0 || StringFind(name,low_HTF,0) >= 0 ||
+            StringFind(name,high_LTF,0) >= 0 || StringFind(name,low_LTF,0) >= 0 ||
+            StringFind(name,fvg_Buy,0) >= 0 || StringFind(name,fvg_Sell,0) >= 0)
            {
             ObjectDelete(0,name);
            }
@@ -189,22 +202,6 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-//---
-   Comment("High: ",htf_High,"  Low:  ",htf_Low," Buy Swing High  ", check_FVG_buy_SwingHigh," Sell Swing Low ",check_FVG_sell_SwingLow);
-//
-   if(newBar_htf()) //Higher Timeframe NewBar
-     {
-      markNewHighsLows(); //==== Marking the New High Lows on Higher Timeframe
-     }
-
-   if(newBar_ltf()) //Lower Timeframe NewBar
-     {
-      checkHighSweepBreak_LTF();
-      checkLowSweepBreak_LTF();
-      markNewHighsLows_LTF(check_FVG_buy_SwingHigh,check_FVG_sell_SwingLow);
-      fairValueGap_Sell(1);
-      fairValueGap_Buy(1);
-     }
   }
 //+------------------------------------------------------------------+
 
@@ -229,54 +226,6 @@ bool newBar_htf()
   }
 
 //+------------------------------------------------------------------+
-//|NewBar for Lower Timeframe                                        |
-//+------------------------------------------------------------------+
-bool newBar_ltf()
-  {
-   static datetime last_time=0;
-   datetime lastbar_time=(datetime)SeriesInfoInteger(Symbol(),linesTF_ltf,SERIES_LASTBAR_DATE);
-   if(last_time!=lastbar_time)
-     {
-      last_time=lastbar_time;
-      Print(".... NewBar(LTF) .... ",last_time);
-      return(true);
-     }
-   return(false);
-  }
-//+------------------------------------------------------------------+
-//|Define high/lows on Higher Timeframe                              |
-//+------------------------------------------------------------------+
-void markNewHighsLows()
-  {
-///============== Check High===================
-   int midIndex = candles_htf+1, countHigh = 0, countLow = 0;
-   double midValueHigh = iHigh(Symbol(),linesTF_htf,midIndex);
-   double midValueLow  = iLow(Symbol(),linesTF_htf,midIndex);
-
-   for(int x = 1 ; x <= candles_htf ; x ++)
-     {
-      if(midValueHigh >= iHigh(Symbol(),linesTF_htf,midIndex+x) && midValueHigh >= iHigh(Symbol(),linesTF_htf,midIndex-x))
-        {
-         countHigh++;
-        }
-      if(midValueLow <= iLow(Symbol(),linesTF_htf,midIndex+x) && midValueLow <= iLow(Symbol(),linesTF_htf,midIndex-x))
-        {
-         countLow++;
-        }
-     }
-   if(countHigh == candles_htf)
-     {
-      createObject(iTime(Symbol(),linesTF_htf,midIndex),midValueHigh,true);
-      htf_High = midValueHigh;
-     }
-   if(countLow == candles_htf)
-     {
-      createObject(iTime(Symbol(),linesTF_htf,midIndex),midValueLow,false);
-      htf_Low = midValueLow;
-     }
-  }
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 //|Create Lines on Higher Timeframe                                  |
 //+------------------------------------------------------------------+
 string createObject(datetime time, double price,bool high)
@@ -285,12 +234,12 @@ string createObject(datetime time, double price,bool high)
    color clr;
    if(high)
      {
-      objName = highObj+IntegerToString(time);
+      objName = high_HTF+IntegerToString(time);
       clr = clrRed;
      }
    else
      {
-      objName = lowObj+IntegerToString(time);
+      objName = low_HTF+IntegerToString(time);
       clr = clrGreen;
      }
    Print("Time: ",time," Time2: ",time+(candles_htf*PeriodSeconds(linesTF_htf)));
@@ -312,13 +261,29 @@ string createObject(datetime time, double price,bool high)
      }
    return "";
   }
-//+------------------------------------------------------------------+
 
-//======================= LTF Objects ================================
+//====================================================== LTF ==========================================================
+
+//+------------------------------------------------------------------+
+//|NewBar for Lower Timeframe                                        |
+//+------------------------------------------------------------------+
+bool newBar_ltf()
+  {
+   static datetime last_time=0;
+   datetime lastbar_time=(datetime)SeriesInfoInteger(Symbol(),linesTF_ltf,SERIES_LASTBAR_DATE);
+   if(last_time!=lastbar_time)
+     {
+      last_time=lastbar_time;
+      Print(".... NewBar(LTF) .... ",last_time);
+      return(true);
+     }
+   return(false);
+  }
+//+------------------------------------------------------------------+
 //+------------------------------------------------------------------+
 //|Define the high/lows on Lower Timeframe                           |
 //+------------------------------------------------------------------+
-void markNewHighsLows_LTF(bool fvgHigh, bool fvgLow)
+void markNewHighsLows_LTF(bool createLow, bool createHigh)
   {
 ///============== Check High===================
    int midIndex = candles_ltf+1, countHigh = 0, countLow = 0;
@@ -336,22 +301,22 @@ void markNewHighsLows_LTF(bool fvgHigh, bool fvgLow)
          countLow++;
         }
      }
-   if(countHigh == candles_ltf && fvgHigh)
-     {
-      Print("High Fvg: ");
-      createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),midValueHigh,true);
-      ltf_High_fvg      = midValueHigh;
-      ltf_High_fvg_Time = iTime(Symbol(),linesTF_ltf,midIndex);
-     }
-   if(countLow == candles_ltf && fvgLow)
+   if(countLow == candles_ltf && createLow)
      {
       Print("Low Fvg: ");
       createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),midValueLow,false);
-      ltf_Low_fvg = midValueLow;
-      ltf_Low_fvg_Time = iTime(Symbol(),linesTF_ltf,midIndex);
+      ltf_Low       = midValueLow;
+      ltf_Low_Time  = iTime(Symbol(),linesTF_ltf,midIndex);
      }
+   if(countHigh == candles_ltf && createHigh)
+     {
+      Print("High Fvg: ");
+      createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),midValueHigh,true);
+      ltf_High      = midValueHigh;
+      ltf_High_Time = iTime(Symbol(),linesTF_ltf,midIndex);
+     }
+
   }
-//+------------------------------------------------------------------+
 //+------------------------------------------------------------------+
 //|Create Lines on Lower  Timeframe                                  |
 //+------------------------------------------------------------------+
@@ -361,133 +326,41 @@ void createObject_LTF(datetime time, double price,bool high)
    color clr;
    if(high)
      {
-      objName = highObj+IntegerToString(time);
+      objName = high_LTF+IntegerToString(time);
       clr = clrPink;
      }
    else
      {
-      objName = lowObj+IntegerToString(time);
+      objName = low_LTF+IntegerToString(time);
       clr = clrLime;
      }
 
-   if(!ObjectCreate(0,objName,OBJ_TREND,0,time,price,time+(candles_ltf*PeriodSeconds(PERIOD_CURRENT)),price))
+   if(ObjectFind(0,objName) < 0)
      {
-      Print("Error in Creating Object: ",GetLastError());
+      if(!ObjectCreate(0,objName,OBJ_TREND,0,time,price,time+(candles_ltf*PeriodSeconds(PERIOD_CURRENT)),price))
+        {
+         Print("Error in Creating Object: ",GetLastError());
+        }
+      else
+        {
+         Print("Object Created successfully: ",objName);
+         ObjectSetInteger(0,objName,OBJPROP_COLOR,clr);
+         ObjectSetInteger(0,objName,OBJPROP_STYLE,STYLE_SOLID);
+         ObjectSetInteger(0,objName,OBJPROP_RAY_LEFT,false);
+         ObjectSetInteger(0,objName,OBJPROP_RAY_RIGHT,false);
+        }
      }
    else
      {
-      Print("Object Created successfully: ",objName);
-     }
-   ObjectSetInteger(0,objName,OBJPROP_COLOR,clr);
-   ObjectSetInteger(0,objName,OBJPROP_STYLE,STYLE_SOLID);
-   ObjectSetInteger(0,objName,OBJPROP_HIDDEN,false);
-   ObjectSetInteger(0,objName,OBJPROP_WIDTH,2);
-   ObjectSetInteger(0,objName,OBJPROP_RAY_LEFT,false);
-   ObjectSetInteger(0,objName,OBJPROP_RAY_RIGHT,false);
-  }
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void checkHighSweepBreak_LTF()
-  {
-   bool alert = false;
-   string name = "",highObjName = "";
-   datetime prevTime = 0, currTime = 0;
-   double highValue = 0;
-   for(int i = ObjectsTotal(0)-1; i >= 0; i--)
-     {
-      name = ObjectName(0,i);
-      if(ObjectGetInteger(0,name,OBJPROP_TYPE) == OBJ_TREND)
-        {
-         if(StringFind(name,highObj,0) >= 0)
-           {
-            currTime = (datetime)ObjectGetInteger(0,name,OBJPROP_TIME,0);
-            if(currTime > prevTime)
-              {
-               prevTime  = currTime;
-               highValue = ObjectGetDouble(0,name,OBJPROP_PRICE,0);
-               highObjName = name;
-               if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-                 {
-                  ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                 }
-               if(highValue >= iClose(Symbol(),linesTF_ltf,1) && highValue <= iHigh(Symbol(),linesTF_ltf,1))
-                 {
-                  if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-                    {
-                     ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                     ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-                     check_FVG_sell_SwingLow = true;
-                    }
-                 }
-               else
-                  if(iClose(Symbol(),linesTF_ltf,1) >= highValue)
-                    {
-                     if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
-                       {
-                        ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                        ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-                       }
-                    }
-              }
-           }
-        }
+      ObjectSetInteger(0,objName,OBJPROP_TIME,0,time);
+      ObjectSetInteger(0,objName,OBJPROP_TIME,1,time+(candles_ltf*PeriodSeconds(PERIOD_CURRENT)));
+      ObjectSetDouble(0,objName,OBJPROP_PRICE,0,price);
+      ObjectSetDouble(0,objName,OBJPROP_PRICE,1,price);
      }
   }
+//+----------------------
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void checkLowSweepBreak_LTF()
-  {
-   bool alert = false;
-   string name = "",lowObjName = "";
-   datetime prevTime = 0, currTime = 0;
-   double lowValue = 0;
-   for(int i = ObjectsTotal(0)-1; i >= 0; i--)
-     {
-      name = ObjectName(0,i);
-      if(ObjectGetInteger(0,name,OBJPROP_TYPE) == OBJ_TREND)
-        {
-         if(StringFind(name,lowObj,0) >= 0)
-           {
-            currTime = (datetime)ObjectGetInteger(0,name,OBJPROP_TIME,0);
-            if(currTime > prevTime)
-              {
-               prevTime  = currTime;
-               lowValue = ObjectGetDouble(0,name,OBJPROP_PRICE,0);
-               lowObjName = name;
-
-               if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-                 {
-                  ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                 }
-               if(lowValue <= iClose(Symbol(),linesTF_ltf,1) && lowValue > iLow(Symbol(),linesTF_ltf,1))
-                 {
-                  if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-                    {
-                     ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                     ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-                     check_FVG_buy_SwingHigh = true;
-                    }
-                 }
-               else
-                  if(iClose(Symbol(),linesTF_ltf,1) < lowValue)
-                    {
-                     if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
-                       {
-                        ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
-                        ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-                       }
-                    }
-              }
-           }
-        }
-     }
-  }
+//=============================== Place Trades ================================
 //+------------------------------------------------------------------+
 //|Place Buy Trades                                                  |
 //+------------------------------------------------------------------+
@@ -512,17 +385,17 @@ void placeSellTrades()
 
    if(trade.PositionOpen(Symbol(),ORDER_TYPE_SELL,lotsize,Bid,sellSL,sellTp,"Sell Trade Placed"))
      {
-      Print("Sell Trade PLaced ");
+      Print("Sell Trade Placed ");
      }
   }
 //+------------------------------------------------------------------+
-
+//========================================== Fair Value Gap LTF ==========================================
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 double fairValueGap_Sell(int i)
   {
-   if(/*iTime(Symbol(),PERIOD_CURRENT,i+2) > ltf_High_fvg_Time && */ltf_Low_fvg_Time != 0)
+   if(ltf_Low > 0)
      {
       Print("Sell FVG: ",iTime(Symbol(),linesTF_ltf,i));
       if(iLow(Symbol(),linesTF_ltf,i) > iHigh(Symbol(),linesTF_ltf,i+2))
@@ -543,7 +416,7 @@ double fairValueGap_Sell(int i)
 //+------------------------------------------------------------------+
 double fairValueGap_Buy(int i)
   {
-   if(/*iTime(Symbol(),PERIOD_CURRENT,i+2) > ltf_Low_fvg_Time && */ltf_High_fvg_Time != 0)
+//if()
      {
       if(iLow(Symbol(),linesTF_ltf,i+2) > iHigh(Symbol(),linesTF_ltf,i))
         {
@@ -567,16 +440,16 @@ void createObject_fvg(datetime time, double low,double high,ENUM_POSITION_TYPE t
    color clr;
    if(type == POSITION_TYPE_SELL)
      {
-      objName = sellObj+IntegerToString(time);
+      objName = fvg_Sell+highObjName;
       clr = clrRed;
      }
    else
      {
-      objName = buyObj+IntegerToString(time);
+      objName = fvg_Buy+lowObjName;
       clr = clrGreen;
      }
 //Print("High : ",high," low: ",low);
-   if(!ObjectCreate(0,objName,OBJ_RECTANGLE,0,time,high,time+(candles*PeriodSeconds(linesTF_ltf)),low))
+   if(!ObjectCreate(0,objName,OBJ_RECTANGLE,0,time,high,iTime(Symbol(),linesTF_ltf,0),low))
      {
       Print("Error in Creating Object: ",GetLastError());
      }
@@ -586,16 +459,16 @@ void createObject_fvg(datetime time, double low,double high,ENUM_POSITION_TYPE t
       ObjectSetInteger(0,objName,OBJPROP_COLOR,clr);
       ObjectSetInteger(0,objName,OBJPROP_FILL,true);
       ObjectSetInteger(0,objName,OBJPROP_BACK,true);
-      if(type == POSITION_TYPE_SELL)
-        {
-         ltf_High_fvg_Time = 0;
-         ltf_High_fvg = 0;
-        }
-      if(type == POSITION_TYPE_BUY)
-        {
-         ltf_Low_fvg_Time = 0;
-         ltf_Low_fvg = 0;
-        }
+      //if(type == POSITION_TYPE_SELL)
+      //  {
+      //   ltf_High_fvg_Time = 0;
+      //   ltf_High_fvg = 0;
+      //  }
+      //if(type == POSITION_TYPE_BUY)
+      //  {
+      //   ltf_Low_fvg_Time = 0;
+      //   ltf_Low_fvg = 0;
+      //  }
      }
   }
 //+------------------------------------------------------------------+
