@@ -522,8 +522,10 @@ void checkFVG()
               {
                if(iOpen(Symbol(),linesTF_ltf,i+1) > iClose(Symbol(),linesTF_ltf,i+1))
                  {
-                  Print("index: ",x," Name : ",od[x].objectName_htf);
-                  placeSellTrades(iHigh(Symbol(),linesTF_ltf,i),od[x].objectPrice_htf);
+                  Print("index: ",x," Name : ",od[x].objectName_htf," shift Time: ",od[x].objectShiftTime_ltf," sweep Time : ",od[x].objectSweepTime_htf);
+                  int bar = iBarShift(Symbol(),linesTF_ltf,od[x].objectSweepTime_htf);
+                  Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_ltf,bar)," Sell Open: ",iHigh(Symbol(),linesTF_ltf,i)," Sl :",iHigh(Symbol(),linesTF_ltf,bar));
+                  placeSellTrades(iHigh(Symbol(),linesTF_ltf,i),iHigh(Symbol(),linesTF_ltf,bar));
                   od[x].objectName_htf = "";
                  }
               }
@@ -535,7 +537,10 @@ void checkFVG()
                  {
                   if(iOpen(Symbol(),linesTF_ltf,i+1) < iClose(Symbol(),linesTF_ltf,i+1))
                     {
-                     placeBuyTrades(iLow(Symbol(),linesTF_ltf,i),od[x].objectPrice_htf);
+                     Print("index: ",x," Name : ",od[x].objectName_htf," shift Time: ",od[x].objectShiftTime_ltf," sweep Time : ",od[x].objectSweepTime_htf);
+                     int bar = iBarShift(Symbol(),linesTF_ltf,od[x].objectSweepTime_htf);
+                     Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_ltf,bar),"Buy Open: ",iLow(Symbol(),linesTF_ltf,i)," Sl :",iLow(Symbol(),linesTF_ltf,bar));
+                     placeBuyTrades(iLow(Symbol(),linesTF_ltf,i),iLow(Symbol(),linesTF_ltf,bar));
                      od[x].objectName_htf = "";
                     }
                  }
