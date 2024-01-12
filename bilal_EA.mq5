@@ -74,7 +74,7 @@ input ENUM_TIMEFRAMES    linesTF_ltf = PERIOD_M5;                               
 
 int checkShift = 2;
 const  string high_HTF  = "High_HTF",low_HTF  = "Low_HTF", checked = "checked", fvg_Sell = "fvg_sell", fvg_Buy = "fvg_buy",high_LTF  = "High_LTF",low_LTF  = "Low_LTF";
-datetime expiry=D'2024.02.15 23:00:00';
+datetime expiry=D'2024.02.28 23:00:00';
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -115,8 +115,8 @@ void OnTick()
 
       markNewHighsLows_HTF();       // Make New High Lows on Higher Timeframe
       //==================== Checking Sweeps of Higher Timeframe ============
-      checkHighSweepBreak_LTF();
-      checkLowSweepBreak_LTF();
+      checkHighSweepBreak_HTF();
+      checkLowSweepBreak_HTF();
 
       //====================
       markNewHighsLows_LTF();
@@ -199,15 +199,15 @@ void removeFromList()
          //if(od[i].buyPlaced || od[i].sellPlace)
          //   od[i].objectName_htf = "";
 
-         if(od[i].highObject_htf && od[i].objectSweepTime_htf != 0 && iTime(Symbol(),linesTF_ltf,1) > od[i].objectSweepTime_htf &&
-            iHigh(Symbol(),linesTF_ltf,1) >= od[i].objectPrice_htf)
+         if(od[i].highObject_htf && od[i].objectSweepTime_htf != 0 && iTime(Symbol(),linesTF_htf,1) > od[i].objectSweepTime_htf &&
+            iHigh(Symbol(),linesTF_htf,1) >= od[i].objectPrice_htf)
            {
             Print("Removing Value from Struct: ",od[i].objectName_htf);
             od[i].objectName_htf = "";
            }
 
-         if(od[i].lowObject_htf && od[i].objectSweepTime_htf != 0 && iTime(Symbol(),linesTF_ltf,1) > od[i].objectSweepTime_htf &&
-            iLow(Symbol(),linesTF_ltf,1) <= od[i].objectPrice_htf)
+         if(od[i].lowObject_htf && od[i].objectSweepTime_htf != 0 && iTime(Symbol(),linesTF_htf,1) > od[i].objectSweepTime_htf &&
+            iLow(Symbol(),linesTF_htf,1) <= od[i].objectPrice_htf)
            {
             Print("Removing Value from Struct: ",od[i].objectName_htf);
             od[i].objectName_htf = "";
@@ -292,7 +292,7 @@ string createObject_HTF(datetime time, double price,bool high)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void checkHighSweepBreak_LTF()
+void checkHighSweepBreak_HTF()
   {
    string highObjName = "";
    double highValue = 0;
@@ -306,27 +306,27 @@ void checkHighSweepBreak_LTF()
             highValue = ObjectGetDouble(0,highObjName,OBJPROP_PRICE,0);
             if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
               {
-               ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+               ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
               }
-            if(highValue >= iClose(Symbol(),linesTF_ltf,1) && highValue <= iHigh(Symbol(),linesTF_ltf,1))
+            if(highValue >= iClose(Symbol(),linesTF_htf,1) && highValue <= iHigh(Symbol(),linesTF_htf,1))
               {
                if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
                  {
-                  ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+                  ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
                   ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-                  od[i].objectSweepTime_htf = iTime(Symbol(),linesTF_ltf,1);
+                  od[i].objectSweepTime_htf = iTime(Symbol(),linesTF_htf,1);
                   od[i].lowObject_ltf = true;
                   Print("High Sweep Time: ", od[i].objectSweepTime_htf);
                  }
               }
             else
-               if(iClose(Symbol(),linesTF_ltf,1) >= highValue)
+               if(iClose(Symbol(),linesTF_htf,1) >= highValue)
                  {
                   if(StringFind(ObjectGetString(0,highObjName,OBJPROP_TEXT),checked,0) < 0)
                     {
-                     ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+                     ObjectSetInteger(0,highObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
                      ObjectSetString(0,highObjName,OBJPROP_TEXT,checked);
-                     Print("Removing Object From Struct: ", od[i].objectName_htf);
+                     Print("Close Above High. Removing Object From Struct: ", od[i].objectName_htf);
                      od[i].objectName_htf = "";
                     }
                  }
@@ -339,7 +339,7 @@ void checkHighSweepBreak_LTF()
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void checkLowSweepBreak_LTF()
+void checkLowSweepBreak_HTF()
   {
    string lowObjName = "";
    double lowValue = 0;
@@ -353,16 +353,17 @@ void checkLowSweepBreak_LTF()
             lowValue = ObjectGetDouble(0,lowObjName,OBJPROP_PRICE,0);
             if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
               {
-               ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+               ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
               }
-            if(lowValue <=iClose(Symbol(),linesTF_ltf,1) && lowValue >= iLow(Symbol(),linesTF_ltf,1))
+            if(lowValue <=iClose(Symbol(),linesTF_htf,1) && lowValue >= iLow(Symbol(),linesTF_htf,1))
               {
                if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
                  {
-                  ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+                  ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
                   ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-                  od[i].objectSweepTime_htf = iTime(Symbol(),linesTF_ltf,1);
+                  od[i].objectSweepTime_htf = iTime(Symbol(),linesTF_htf,1);
                   od[i].highObject_ltf = true;
+                  Print("Low Sweep Time: ",iTime(Symbol(),linesTF_htf,1));
                  }
               }
             else
@@ -370,9 +371,9 @@ void checkLowSweepBreak_LTF()
                  {
                   if(StringFind(ObjectGetString(0,lowObjName,OBJPROP_TEXT),checked,0) < 0)
                     {
-                     ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_ltf,1));
+                     ObjectSetInteger(0,lowObjName,OBJPROP_TIME,1,iTime(Symbol(),linesTF_htf,1));
                      ObjectSetString(0,lowObjName,OBJPROP_TEXT,checked);
-                     Print("Removing Object From Struct: ", od[i].objectName_htf);
+                     Print("Close Below Low Removing Object From Struct: ", od[i].objectName_htf);
                      od[i].objectName_htf = "";
                     }
                  }
@@ -523,9 +524,9 @@ void checkFVG()
                if(iOpen(Symbol(),linesTF_ltf,i+1) > iClose(Symbol(),linesTF_ltf,i+1))
                  {
                   Print("index: ",x," Name : ",od[x].objectName_htf," shift Time: ",od[x].objectShiftTime_ltf," sweep Time : ",od[x].objectSweepTime_htf);
-                  int bar = iBarShift(Symbol(),linesTF_ltf,od[x].objectSweepTime_htf);
-                  Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_ltf,bar)," Sell Open: ",iHigh(Symbol(),linesTF_ltf,i)," Sl :",iHigh(Symbol(),linesTF_ltf,bar));
-                  placeSellTrades(iHigh(Symbol(),linesTF_ltf,i),iHigh(Symbol(),linesTF_ltf,bar));
+                  int bar = iBarShift(Symbol(),linesTF_htf,od[x].objectSweepTime_htf);
+                  Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_ltf,bar)," Sell Open: ",iHigh(Symbol(),linesTF_ltf,i)," Sl :",iHigh(Symbol(),linesTF_htf,bar));
+                  placeSellTrades(iHigh(Symbol(),linesTF_ltf,i),iHigh(Symbol(),linesTF_htf,bar));
                   od[x].objectName_htf = "";
                  }
               }
@@ -538,9 +539,9 @@ void checkFVG()
                   if(iOpen(Symbol(),linesTF_ltf,i+1) < iClose(Symbol(),linesTF_ltf,i+1))
                     {
                      Print("index: ",x," Name : ",od[x].objectName_htf," shift Time: ",od[x].objectShiftTime_ltf," sweep Time : ",od[x].objectSweepTime_htf);
-                     int bar = iBarShift(Symbol(),linesTF_ltf,od[x].objectSweepTime_htf);
-                     Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_ltf,bar),"Buy Open: ",iLow(Symbol(),linesTF_ltf,i)," Sl :",iLow(Symbol(),linesTF_ltf,bar));
-                     placeBuyTrades(iLow(Symbol(),linesTF_ltf,i),iLow(Symbol(),linesTF_ltf,bar));
+                     int bar = iBarShift(Symbol(),linesTF_htf,od[x].objectSweepTime_htf);
+                     Print("Bar: ",bar," Time: ",iTime(Symbol(),linesTF_htf,bar),"Buy Open: ",iLow(Symbol(),linesTF_ltf,i)," Sl :",iLow(Symbol(),linesTF_htf,bar));
+                     placeBuyTrades(iLow(Symbol(),linesTF_htf,i),iLow(Symbol(),linesTF_htf,bar));
                      od[x].objectName_htf = "";
                     }
                  }
