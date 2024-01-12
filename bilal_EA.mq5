@@ -411,17 +411,17 @@ void markNewHighsLows_LTF()
      {
       if(od[i].objectName_htf != "" && od[i].objectSweepTime_htf != 0)
         {
-         if(od[i].lowObject_ltf && countLow == candles_ltf && od[i].objectPrice_ltf == 0 &&
+         if(od[i].lowObject_ltf && countLow == candles_ltf /*&& od[i].objectPrice_ltf == 0*/ &&
             iTime(Symbol(),linesTF_ltf,midIndex) > od[i].objectSweepTime_htf)
            {
-            od[i].objectName_ltf = createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),iTime(Symbol(),linesTF_ltf,0),midValueLow,false);
+            od[i].objectName_ltf = createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),iTime(Symbol(),linesTF_ltf,0),midValueLow,false,od[i].objectName_ltf);
             od[i].objectPrice_ltf = midValueLow;
            }
 
-         if(od[i].highObject_ltf && countHigh == candles_ltf && od[i].objectPrice_ltf == 0 &&
+         if(od[i].highObject_ltf && countHigh == candles_ltf /*&& od[i].objectPrice_ltf == 0*/ &&
             iTime(Symbol(),linesTF_ltf,midIndex) > od[i].objectSweepTime_htf)
            {
-            od[i].objectName_ltf = createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),iTime(Symbol(),linesTF_ltf,0),midValueHigh,true);
+            od[i].objectName_ltf = createObject_LTF(iTime(Symbol(),linesTF_ltf,midIndex),iTime(Symbol(),linesTF_ltf,0),midValueHigh,true,od[i].objectName_ltf);
             od[i].objectPrice_ltf = midValueHigh;
            }
         }
@@ -431,35 +431,48 @@ void markNewHighsLows_LTF()
 //+------------------------------------------------------------------+
 //|Create Lines on Lower  Timeframe                                  |
 //+------------------------------------------------------------------+
-string createObject_LTF(datetime time,datetime time2,double price,bool high)
+string createObject_LTF(datetime time,datetime time2,double price,bool high,string name)
   {
-   string objName = "";
+   string objName = name;
    color clr;
-   if(high)
+   
+   if(high && name == "")
      {
       objName = high_LTF+IntegerToString(time);
       clr = clrPink;
      }
    else
-     {
-      objName = low_LTF+IntegerToString(time);
-      clr = clrLime;
-     }
+      if(high == false  && name == "")
+        {
+         objName = low_LTF+IntegerToString(time);
+         clr = clrLime;
+        }
 
-   if(!ObjectCreate(0,objName,OBJ_TREND,0,time,price,time2,price))
+   if(ObjectFind(0,objName) < 0)
      {
-      Print("Error in Creating Object: ",GetLastError());
+      if(!ObjectCreate(0,objName,OBJ_TREND,0,time,price,time2,price))
+        {
+         Print("Error in Creating Object: ",GetLastError());
+        }
+      else
+        {
+         Print("Object Created successfully: ",objName);
+
+         ObjectSetInteger(0,objName,OBJPROP_COLOR,clr);
+         ObjectSetInteger(0,objName,OBJPROP_STYLE,STYLE_SOLID);
+         ObjectSetInteger(0,objName,OBJPROP_HIDDEN,false);
+         ObjectSetInteger(0,objName,OBJPROP_WIDTH,2);
+         ObjectSetInteger(0,objName,OBJPROP_RAY_LEFT,false);
+         ObjectSetInteger(0,objName,OBJPROP_RAY_RIGHT,false);
+         return objName;
+        }
      }
    else
      {
-      Print("Object Created successfully: ",objName);
-
-      ObjectSetInteger(0,objName,OBJPROP_COLOR,clr);
-      ObjectSetInteger(0,objName,OBJPROP_STYLE,STYLE_SOLID);
-      ObjectSetInteger(0,objName,OBJPROP_HIDDEN,false);
-      ObjectSetInteger(0,objName,OBJPROP_WIDTH,2);
-      ObjectSetInteger(0,objName,OBJPROP_RAY_LEFT,false);
-      ObjectSetInteger(0,objName,OBJPROP_RAY_RIGHT,false);
+      ObjectSetInteger(0,objName,OBJPROP_TIME,0,time);
+      ObjectSetInteger(0,objName,OBJPROP_TIME,1,time2);
+      ObjectSetDouble(0,objName,OBJPROP_PRICE,0,price);
+      ObjectSetDouble(0,objName,OBJPROP_PRICE,1,price);
       return objName;
      }
    return "";
